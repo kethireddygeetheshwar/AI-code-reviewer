@@ -3,7 +3,10 @@ import { vi } from 'vitest'
 import App from './App'
 
 vi.mock('./lib/supabase', () => ({ supabase: null, authConfigured: false }))
-vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) })))
+vi.stubGlobal(
+  'fetch',
+  vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) })),
+)
 
 test('guests can continue and see the product title', () => {
   render(<App />)

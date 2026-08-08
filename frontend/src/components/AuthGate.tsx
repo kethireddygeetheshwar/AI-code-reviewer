@@ -3,9 +3,191 @@ import { ArrowRight, Code2, Github, LockKeyhole, Sparkles } from 'lucide-react'
 import { authConfigured, supabase } from '../lib/supabase'
 
 export type Profile = { name: string; email: string }
-export function AuthGate({onContinue}:{onContinue:(profile:Profile)=>void}) {
-  const [mode,setMode]=useState<'signin'|'signup'>('signup'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
-  async function submit(e:FormEvent){e.preventDefault();if(!supabase)return;setBusy(true);setMessage('');try{if(mode==='signup'){const {data,error}=await supabase.auth.signUp({email,password,options:{data:{name},emailRedirectTo:window.location.origin}});if(error)throw error;if(data.session)onContinue({name:name||email.split('@')[0],email});else setMessage('Check your email to confirm your account, then sign in.')}else{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;onContinue({name:(data.user.user_metadata.name as string)||email.split('@')[0],email:data.user.email||email})}}catch(err){setMessage(err instanceof Error?err.message:'Authentication failed. Please try again.')}finally{setBusy(false)}}
-  async function oauth(provider:'google'|'github'){if(!supabase)return;setBusy(true);const {error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:window.location.origin}});if(error){setMessage(error.message);setBusy(false)}}
-  return <main className="grid-bg relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10"><div className="orb orb-violet -left-24 top-10 h-72 w-72"/><div className="orb orb-cyan -right-20 bottom-10 h-80 w-80"/><div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-ink/80 shadow-2xl backdrop-blur lg:grid-cols-[1.05fr_.95fr]"><section className="hidden bg-gradient-to-br from-violet-600/30 via-brand/15 to-cyan-400/15 p-10 lg:block"><div className="flex items-center gap-2 font-bold"><span className="rounded-xl bg-white/10 p-2 text-violet-200"><Code2 size={20}/></span>Review<span className="text-violet-300">Lens</span></div><div className="mt-28"><p className="inline-flex items-center gap-2 rounded-full border border-violet-200/20 bg-white/5 px-3 py-1 text-xs text-violet-100"><Sparkles size={14}/>Your intelligent learning space</p><h1 className="mt-5 text-4xl font-bold leading-tight">Learn to write code with confidence.</h1><p className="mt-5 max-w-sm leading-7 text-slate-300">Get thoughtful reviews, turn feedback into practice, and build a stronger developer habit one session at a time.</p></div></section><section className="p-7 sm:p-10"><div className="lg:hidden flex items-center gap-2 font-bold"><span className="rounded-xl bg-brand/20 p-2 text-violet-300"><Code2 size={18}/></span>Review<span className="gradient-text">Lens</span></div><div className="mt-10 flex rounded-xl bg-white/5 p-1"><button onClick={()=>setMode('signup')} className={`w-1/2 rounded-lg py-2 text-sm ${mode==='signup'?'bg-white/10 text-white':'text-slate-400'}`}>Create account</button><button onClick={()=>setMode('signin')} className={`w-1/2 rounded-lg py-2 text-sm ${mode==='signin'?'bg-white/10 text-white':'text-slate-400'}`}>Sign in</button></div><h2 className="mt-7 text-2xl font-bold">{mode==='signup'?'Start your learning journey':'Welcome back'}</h2>{!authConfigured?<div className="mt-4 space-y-3"><p className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">Supabase is not configured yet. Add the URL and anon key to <code>frontend/.env</code>, then restart Vite.</p><button onClick={()=>onContinue({name:'Guest',email:'guest@reviewlens.app'})} className="btn-primary w-full rounded-xl px-4 py-2.5 text-sm font-semibold">Continue without account</button></div>:<><form onSubmit={submit} className="mt-7 space-y-4">{mode==='signup'&&<label className="block text-sm text-slate-300">Name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"/></label>}<label className="block text-sm text-slate-300">Email<input value={email} onChange={e=>setEmail(e.target.value)} type="email" required placeholder="you@example.com" className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"/></label><label className="block text-sm text-slate-300">Password<input value={password} onChange={e=>setPassword(e.target.value)} type="password" required minLength={6} placeholder="At least 6 characters" className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"/></label>{message&&<p className="text-xs text-amber-200">{message}</p>}<button disabled={busy} className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold disabled:opacity-60">{busy?'Please wait…':mode==='signup'?'Create free account':'Sign in'} <ArrowRight size={17}/></button></form><div className="my-5 flex items-center gap-3 text-xs text-slate-500 before:h-px before:flex-1 before:bg-white/10 after:h-px after:flex-1 after:bg-white/10">or continue with</div><div className="grid grid-cols-2 gap-3"><button onClick={()=>oauth('google')} disabled={busy} className="rounded-xl border border-white/10 py-2.5 text-sm hover:bg-white/5">Google</button><button onClick={()=>oauth('github')} disabled={busy} className="flex items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm hover:bg-white/5"><Github size={16}/>GitHub</button></div></>}<p className="mt-5 flex items-center gap-2 text-xs leading-5 text-slate-500"><LockKeyhole size={13}/>Secure authentication powered by Supabase.</p></section></div></main>
+export function AuthGate({ onContinue }: { onContinue: (profile: Profile) => void }) {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signup'),
+    [name, setName] = useState(''),
+    [email, setEmail] = useState(''),
+    [password, setPassword] = useState(''),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState('')
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!supabase) return
+    setBusy(true)
+    setMessage('')
+    try {
+      if (mode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name }, emailRedirectTo: window.location.origin },
+        })
+        if (error) throw error
+        if (data.session) onContinue({ name: name || email.split('@')[0], email })
+        else setMessage('Check your email to confirm your account, then sign in.')
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        onContinue({
+          name: (data.user.user_metadata.name as string) || email.split('@')[0],
+          email: data.user.email || email,
+        })
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Authentication failed. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function oauth(provider: 'google' | 'github') {
+    if (!supabase) return
+    setBusy(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    })
+    if (error) {
+      setMessage(error.message)
+      setBusy(false)
+    }
+  }
+  return (
+    <main className="grid-bg relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10">
+      <div className="orb orb-violet -left-24 top-10 h-72 w-72" />
+      <div className="orb orb-cyan -right-20 bottom-10 h-80 w-80" />
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-ink/80 shadow-2xl backdrop-blur lg:grid-cols-[1.05fr_.95fr]">
+        <section className="hidden bg-gradient-to-br from-violet-600/30 via-brand/15 to-cyan-400/15 p-10 lg:block">
+          <div className="flex items-center gap-2 font-bold">
+            <span className="rounded-xl bg-white/10 p-2 text-violet-200">
+              <Code2 size={20} />
+            </span>
+            Review<span className="text-violet-300">Lens</span>
+          </div>
+          <div className="mt-28">
+            <p className="inline-flex items-center gap-2 rounded-full border border-violet-200/20 bg-white/5 px-3 py-1 text-xs text-violet-100">
+              <Sparkles size={14} />
+              Your intelligent learning space
+            </p>
+            <h1 className="mt-5 text-4xl font-bold leading-tight">
+              Learn to write code with confidence.
+            </h1>
+            <p className="mt-5 max-w-sm leading-7 text-slate-300">
+              Get thoughtful reviews, turn feedback into practice, and build a stronger developer
+              habit one session at a time.
+            </p>
+          </div>
+        </section>
+        <section className="p-7 sm:p-10">
+          <div className="lg:hidden flex items-center gap-2 font-bold">
+            <span className="rounded-xl bg-brand/20 p-2 text-violet-300">
+              <Code2 size={18} />
+            </span>
+            Review<span className="gradient-text">Lens</span>
+          </div>
+          <div className="mt-10 flex rounded-xl bg-white/5 p-1">
+            <button
+              onClick={() => setMode('signup')}
+              className={`w-1/2 rounded-lg py-2 text-sm ${mode === 'signup' ? 'bg-white/10 text-white' : 'text-slate-400'}`}
+            >
+              Create account
+            </button>
+            <button
+              onClick={() => setMode('signin')}
+              className={`w-1/2 rounded-lg py-2 text-sm ${mode === 'signin' ? 'bg-white/10 text-white' : 'text-slate-400'}`}
+            >
+              Sign in
+            </button>
+          </div>
+          <h2 className="mt-7 text-2xl font-bold">
+            {mode === 'signup' ? 'Start your learning journey' : 'Welcome back'}
+          </h2>
+          {!authConfigured ? (
+            <div className="mt-4 space-y-3">
+              <p className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">
+                Supabase is not configured yet. Add the URL and anon key to{' '}
+                <code>frontend/.env</code>, then restart Vite.
+              </p>
+              <button
+                onClick={() => onContinue({ name: 'Guest', email: 'guest@reviewlens.app' })}
+                className="btn-primary w-full rounded-xl px-4 py-2.5 text-sm font-semibold"
+              >
+                Continue without account
+              </button>
+            </div>
+          ) : (
+            <>
+              <form onSubmit={submit} className="mt-7 space-y-4">
+                {mode === 'signup' && (
+                  <label className="block text-sm text-slate-300">
+                    Name
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name"
+                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"
+                    />
+                  </label>
+                )}
+                <label className="block text-sm text-slate-300">
+                  Email
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"
+                  />
+                </label>
+                <label className="block text-sm text-slate-300">
+                  Password
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="At least 6 characters"
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:border-brand"
+                  />
+                </label>
+                {message && <p className="text-xs text-amber-200">{message}</p>}
+                <button
+                  disabled={busy}
+                  className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold disabled:opacity-60"
+                >
+                  {busy ? 'Please wait…' : mode === 'signup' ? 'Create free account' : 'Sign in'}{' '}
+                  <ArrowRight size={17} />
+                </button>
+              </form>
+              <div className="my-5 flex items-center gap-3 text-xs text-slate-500 before:h-px before:flex-1 before:bg-white/10 after:h-px after:flex-1 after:bg-white/10">
+                or continue with
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => oauth('google')}
+                  disabled={busy}
+                  className="rounded-xl border border-white/10 py-2.5 text-sm hover:bg-white/5"
+                >
+                  Google
+                </button>
+                <button
+                  onClick={() => oauth('github')}
+                  disabled={busy}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm hover:bg-white/5"
+                >
+                  <Github size={16} />
+                  GitHub
+                </button>
+              </div>
+            </>
+          )}
+          <p className="mt-5 flex items-center gap-2 text-xs leading-5 text-slate-500">
+            <LockKeyhole size={13} />
+            Secure authentication powered by Supabase.
+          </p>
+        </section>
+      </div>
+    </main>
+  )
 }

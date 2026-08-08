@@ -15,6 +15,7 @@ import { Chat } from './components/Chat'
 import { EditorPane } from './components/EditorPane'
 import { LearningHub, type Progress } from './components/LearningHub'
 import { MLLab } from './components/MLLab'
+import { MLAnalyzer } from './components/MLAnalyzer'
 import { ReviewPanel } from './components/ReviewPanel'
 import { TestLab } from './components/TestLab'
 import { reviewCode, type Review } from './lib/api'
@@ -136,6 +137,12 @@ export default function App() {
             </a>
             <a href="#ml-lab" className="hidden text-sm text-slate-400 hover:text-white md:block">
               ML Lab
+            </a>
+            <a
+              href="#ml-analyzer"
+              className="hidden text-sm text-slate-400 hover:text-white md:block"
+            >
+              ML Analyzer
             </a>
             <span className="hidden rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300 sm:block">
               Hi, {profile.name}
@@ -297,6 +304,7 @@ export default function App() {
             <TestLab code={code} language={language} />
           </div>
           <MLLab />
+          <MLAnalyzer />
         </section>
         <section className="border-y border-white/10 bg-brand/10 px-5 py-16 text-center">
           <h2 className="font-display text-3xl font-bold">

@@ -70,3 +70,36 @@ export async function generateTests(code: string, language: string) {
 }
 export const reportUrl = (id: number) =>
   `${API}/reviews/${id}/report${TOKEN ? `?token=${TOKEN}` : ''}`
+
+export type MLAnalysisCategory = {
+  key: string
+  label: string
+  score: number
+  status: 'ok' | 'warn' | 'bad'
+}
+export type MLAnalysisIssue = { category: string; severity: string; message: string }
+export type MLAnalysis = {
+  score: number
+  status: string
+  categories: MLAnalysisCategory[]
+  dataset: {
+    rows: number
+    columns: number
+    target: string
+    target_type: string
+    missing_pct: number
+    duplicate_pct: number
+    constant_columns: string[]
+    class_distribution: Record<string, number>
+  }
+  issues: MLAnalysisIssue[]
+}
+export async function mlAnalysis(csv: string, code: string) {
+  const r = await fetch(`${API}/ml-analysis`, {
+    method: 'POST',
+    headers: authHeaders(true),
+    body: JSON.stringify({ csv, code }),
+  })
+  if (!r.ok) throw new Error('ML analysis is unavailable.')
+  return r.json() as Promise<MLAnalysis>
+}

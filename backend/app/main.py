@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db
 from .models import ReviewRecord
+from .ml_analysis import analyze_ml
 from .reporting import pdf_report
 from .reviewer import answer_question, generate_tests, review_code
-from .schemas import ChatRequest, HistoryItem, ReviewRequest, TestRequest
+from .schemas import ChatRequest, HistoryItem, MLAnalysisRequest, ReviewRequest, TestRequest
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="AI Code Reviewer", version="1.0.0")
@@ -68,3 +69,11 @@ def chat(payload: ChatRequest):
 @app.post("/api/generate-tests", dependencies=[Depends(require_token)])
 def tests(payload: TestRequest):
     return {"tests": generate_tests(payload.code, payload.language)}
+
+
+@app.post("/api/ml-analysis", dependencies=[Depends(require_token)])
+def ml_analysis(payload: MLAnalysisRequest):
+    result = analyze_ml(payload.csv, payload.code)
+    if result is None:
+        raise HTTPException(422, "Could not parse the CSV dataset. Please upload a valid CSV file.")
+    return result

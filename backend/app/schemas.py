@@ -21,6 +21,11 @@ class TestRequest(BaseModel):
     language: str = "python"
 
 
+class MLAnalysisRequest(BaseModel):
+    csv: str = Field(min_length=1, max_length=1_000_000)
+    code: str = Field(max_length=30000)
+
+
 class HistoryItem(BaseModel):
     id: int
     title: str

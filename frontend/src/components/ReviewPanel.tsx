@@ -10,6 +10,7 @@ import {
   GitCompareArrows,
   GraduationCap,
 } from 'lucide-react'
+import { reportUrl } from '../lib/api'
 import type { Review } from '../lib/api'
 
 const labels: Record<string, string> = {
@@ -83,11 +84,12 @@ export function ReviewPanel({ review, reviewId }: { review: Review; reviewId: nu
         </div>
         {reviewId && (
           <a
-            href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/reviews/${reviewId}/report`}
+            href={reportUrl(reviewId)}
             target="_blank"
             rel="noreferrer"
             className="rounded-xl border border-white/15 p-2 text-slate-300 hover:bg-white/10"
             title="Download PDF"
+            aria-label="Download review as PDF"
           >
             <Download size={18} />
           </a>

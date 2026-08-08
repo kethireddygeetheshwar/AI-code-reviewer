@@ -1,5 +1,5 @@
 import json
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -15,11 +15,20 @@ app = FastAPI(title="AI Code Reviewer", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
+def require_token(authorization: str | None = Header(default=None), token: str | None = Query(default=None)) -> None:
+    settings = get_settings()
+    if not settings.api_token:
+        return
+    provided = authorization or (f"Bearer {token}" if token else None)
+    if provided != f"Bearer {settings.api_token}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 @app.get("/api/health")
 def health(): return {"status": "ok"}
 
 
-@app.post("/api/reviews")
+@app.post("/api/reviews", dependencies=[Depends(require_token)])
 def create_review(payload: ReviewRequest, db: Session = Depends(get_db)):
     try:
         review = review_code(payload.code, payload.language, payload.focus)
@@ -30,20 +39,20 @@ def create_review(payload: ReviewRequest, db: Session = Depends(get_db)):
         raise HTTPException(500, "We could not review that code right now. Please try again.") from exc
 
 
-@app.get("/api/reviews", response_model=list[HistoryItem])
+@app.get("/api/reviews", response_model=list[HistoryItem], dependencies=[Depends(require_token)])
 def list_reviews(db: Session = Depends(get_db)):
     records = db.query(ReviewRecord).order_by(ReviewRecord.created_at.desc()).limit(50).all()
     return [HistoryItem(id=x.id, title=x.title, language=x.language, created_at=x.created_at, score=json.loads(x.review_json).get("score", 0)) for x in records]
 
 
-@app.get("/api/reviews/{review_id}")
+@app.get("/api/reviews/{review_id}", dependencies=[Depends(require_token)])
 def get_review(review_id: int, db: Session = Depends(get_db)):
     record = db.get(ReviewRecord, review_id)
     if not record: raise HTTPException(404, "Review not found")
     return {"id": record.id, "title": record.title, "language": record.language, "code": record.source_code, "review": json.loads(record.review_json), "created_at": record.created_at}
 
 
-@app.get("/api/reviews/{review_id}/report")
+@app.get("/api/reviews/{review_id}/report", dependencies=[Depends(require_token)])
 def download_report(review_id: int, db: Session = Depends(get_db)):
     record = db.get(ReviewRecord, review_id)
     if not record: raise HTTPException(404, "Review not found")
@@ -51,11 +60,11 @@ def download_report(review_id: int, db: Session = Depends(get_db)):
     return Response(content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="review-{review_id}.pdf"'})
 
 
-@app.post("/api/chat")
+@app.post("/api/chat", dependencies=[Depends(require_token)])
 def chat(payload: ChatRequest):
     return {"answer": answer_question(payload.question, payload.code, payload.language, payload.review_context)}
 
 
-@app.post("/api/generate-tests")
+@app.post("/api/generate-tests", dependencies=[Depends(require_token)])
 def tests(payload: TestRequest):
     return {"tests": generate_tests(payload.code, payload.language)}

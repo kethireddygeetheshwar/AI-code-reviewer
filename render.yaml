@@ -10,5 +10,7 @@ services:
         value: groq
       - key: GROQ_API_KEY
         sync: false
+      - key: API_TOKEN
+        sync: false
       - key: CORS_ORIGINS
         value: https://ai-code-reviewer-mu-virid.vercel.app

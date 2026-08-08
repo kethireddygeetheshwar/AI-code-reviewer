@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     database_url: str = "sqlite:///./data/reviews.db"
     cors_origins: str = "http://localhost:5173"
+    api_token: str | None = None
 
     # Resolve the repository-root .env even when Uvicorn is started from backend/.
     model_config = SettingsConfigDict(

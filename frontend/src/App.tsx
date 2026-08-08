@@ -40,7 +40,8 @@ export default function App() {
     [dark, setDark] = useState(true),
     [progress, setProgress] = useState(freshProgress),
     [focus, setFocus] = useState('balanced'),
-    [profile, setProfile] = useState<Profile | null>(null)
+    [profile, setProfile] = useState<Profile | null>(null),
+    [coldNotice, setColdNotice] = useState(false)
   useEffect(() => {
     if (supabase) {
       supabase.auth.getSession().then(({ data }) => {
@@ -72,6 +73,9 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('light', !dark)
   }, [dark])
+  useEffect(() => {
+    fetch('/api/health', { method: 'GET' }).catch(() => {})
+  }, [])
   function track(lang: string) {
     setProgress((old) => {
       const next = {
@@ -88,6 +92,8 @@ export default function App() {
     if (!code.trim()) return setError('Paste some code before requesting a review.')
     setLoading(true)
     setError('')
+    setColdNotice(false)
+    const wakeTimer = setTimeout(() => setColdNotice(true), 8000)
     try {
       const r = await reviewCode(code, language, title, focus)
       setReview(r.review)
@@ -96,7 +102,9 @@ export default function App() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
+      clearTimeout(wakeTimer)
       setLoading(false)
+      setColdNotice(false)
     }
   }
   function challenge(c: string, l: string, t: string) {
@@ -260,6 +268,12 @@ export default function App() {
                 Review code
               </button>
             </div>
+            {coldNotice && (
+              <p className="mt-2 text-xs text-amber-300">
+                The free server is waking up — the first request can take about a minute. Please
+                wait a moment.
+              </p>
+            )}
           </div>
           {error && (
             <div className="mb-4 rounded-xl border border-rose-400/20 bg-rose-400/10 p-3 text-sm text-rose-200">

@@ -1,27 +1,54 @@
 # AI Code Reviewer · ReviewLens
 
-A polished full-stack AI code-review workspace. Paste Python, JavaScript, Java, or C++ and receive bug findings, security guidance, complexity analysis, quality scoring, suggested code, and a follow-up reviewer chat.
+A full-stack AI code-review workspace for Python, JavaScript, Java, and C++. ReviewLens combines LLM-assisted review with local analysis to surface bugs, security concerns, complexity issues, quality scores, suggested code, and follow-up reviewer chat.
+
+## Why this project
+
+Code review often requires checking the same categories repeatedly: correctness, security, complexity, and maintainability. ReviewLens brings those checks into one workflow while keeping provider credentials on the backend.
 
 ## Features
 
-- Premium responsive React UI with dark/light modes, glassmorphism, motion, and Monaco editor
-- Groq by default, with OpenAI selection through environment variables
+- Responsive React UI with dark/light modes and Monaco editor
+- Groq by default, with OpenAI selectable through server-side environment variables
 - Persistent SQLite review history and downloadable PDF reports
-- Code quality scorecards, severity-labelled issues, security and complexity analysis
-- Docker, GitHub Actions CI, backend Pytest and frontend Testing Library coverage
-- Vercel + Render configuration included
+- Severity-labelled findings, quality scorecards, security guidance, and complexity analysis
+- AI-assisted follow-up chat and test generation
+- CSV-based ML analysis workflow
+- Docker support and GitHub Actions CI
+- Backend Pytest and frontend Testing Library tests
+- Vercel + Render deployment configuration
 
-## Screenshots
+## Architecture
 
-Add screenshots here after running locally:
+```text
+React + Monaco
+      |
+      | HTTPS / API
+      v
+FastAPI backend
+      |
+      +---- Pydantic validation
+      +---- Review / ML analysis
+      +---- SQLite persistence
+      +---- AI provider adapter
+      |
+      v
+Groq / OpenAI
+```
 
-`![Review workspace](assets/review-workspace.png)`
+The backend is responsible for provider credentials and external AI calls. Client-side configuration should contain only public frontend values.
+
+## Security
+
+The project includes explicit request-size validation, configurable CORS origins, optional bearer-token protection for API endpoints, and guidance for keeping AI provider secrets server-side. See [`SECURITY.md`](SECURITY.md) for the current controls, limitations, and production hardening checklist.
+
+**Important:** the current bearer-token mechanism is a lightweight API guard, not a complete multi-user identity system. Persisted review history is not yet scoped to individual users, so multi-user production deployments should implement user authentication and authorization before treating stored reviews as private user data.
 
 ## Local installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-code-reviewer.git
-cd ai-code-reviewer
+git clone https://github.com/kethireddygeetheshwar/AI-code-reviewer.git
+cd AI-code-reviewer
 cp .env.example .env
 ```
 
@@ -37,17 +64,18 @@ Add `GROQ_API_KEY` (recommended) or set `AI_PROVIDER=openai` and provide `OPENAI
 
 Only the public anonymous key belongs in the frontend. Never put Supabase's `service_role` key in a Vite environment file.
 
-Start the API:
+### Start the API
 
 ```bash
 cd backend
 python -m venv .venv
-# Windows: .venv\Scripts\activate   macOS/Linux: source .venv/bin/activate
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-In a second terminal start the client:
+### Start the frontend
 
 ```bash
 cd frontend
@@ -55,21 +83,22 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The API documentation is at `http://localhost:8000/docs`.
+Open `http://localhost:5173`. API documentation is available at `http://localhost:8000/docs`.
 
 ## Environment variables
 
 | Variable | Purpose |
 | --- | --- |
 | `AI_PROVIDER` | `groq` (default) or `openai` |
-| `GROQ_API_KEY` | Groq secret key |
-| `GROQ_MODEL` | Defaults to `llama-3.3-70b-versatile` |
-| `OPENAI_API_KEY` | OpenAI secret key |
-| `OPENAI_MODEL` | Defaults to `gpt-4o-mini` |
-| `DATABASE_URL` | SQLite URL, default is `sqlite:///./data/reviews.db` |
+| `GROQ_API_KEY` | Groq server-side secret |
+| `GROQ_MODEL` | Groq model name |
+| `OPENAI_API_KEY` | OpenAI server-side secret |
+| `OPENAI_MODEL` | OpenAI model name |
+| `DATABASE_URL` | SQLite database URL |
 | `CORS_ORIGINS` | Comma-separated allowed client origins |
+| `API_TOKEN` | Optional bearer token for API protection |
 
-Without a key, the app still runs with conservative local pattern checks, making onboarding friction-free.
+Never commit real secret values to the repository.
 
 ## Docker
 
@@ -88,12 +117,15 @@ cd frontend && npm test
 
 ## Deploy
 
-1. Create a Render Web Service from this repo, using `render.yaml`; add the AI key and set `CORS_ORIGINS` to your Vercel URL.
-2. Import `frontend/` into Vercel. Update `frontend/vercel.json` with the real Render service hostname (or set `VITE_API_URL` to `https://your-api.onrender.com/api` before building).
-3. Keep AI keys only in Render environment settings—never in Vercel client variables.
+1. Create a Render Web Service from this repository using `render.yaml` and configure server-side AI secrets.
+2. Import `frontend/` into Vercel and configure `VITE_API_URL` with the deployed API URL.
+3. Set `CORS_ORIGINS` to the exact production frontend origin.
+4. Keep provider API keys only in server-side environment settings.
 
-## Future improvements
+## Development roadmap
 
-- Add Auth.js/Clerk/Supabase Auth for real Google and GitHub OAuth plus user-scoped history.
-- Stream model output, background jobs for large files, repository/PR integrations, and team workspaces.
-- Add language-specific static analyzers (Ruff, Semgrep, ESLint) alongside LLM review.
+- Add complete multi-user authentication and user-scoped review history.
+- Add rate limiting for AI-backed endpoints.
+- Add static analyzers such as Ruff, Semgrep, and ESLint alongside LLM review.
+- Expand integration tests and security scanning in CI.
+- Add repository/PR integrations with explicit least-privilege permissions.

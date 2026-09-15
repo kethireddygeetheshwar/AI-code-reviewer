@@ -4,6 +4,13 @@ from .config import get_settings
 
 SYSTEM_PROMPT = """You are ReviewLens, a rigorous yet encouraging senior software engineer. Review only the provided code. Return valid JSON with exactly these keys: summary (string), score (integer 0-100), metrics (object with maintainability, readability, efficiency, security, best_practices integers 0-100), bugs (array of {severity: Critical|Major|Minor, title, explanation, line}), optimizations (array of strings), explanation (object with purpose string, functions array of strings, logic array of strings), security (array of strings), complexity (object with time, space, explanation), improved_code (string), improvements (array of strings). Make useful beginner-friendly recommendations. Never include markdown fences in JSON values."""
 
+REQUIRED_KEYS = {
+    "summary", "score", "metrics", "bugs", "optimizations", "explanation",
+    "security", "complexity", "improved_code", "improvements",
+}
+METRIC_KEYS = {"maintainability", "readability", "efficiency", "security", "best_practices"}
+SEVERITIES = {"Critical", "Major", "Minor"}
+
 
 def fallback_review(code: str, language: str) -> dict[str, Any]:
     flags, security, bugs = [], [], []
@@ -20,9 +27,27 @@ def fallback_review(code: str, language: str) -> dict[str, Any]:
 def _parse_json(value: str) -> dict[str, Any]:
     text = value.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     data = json.loads(text)
-    required = {"summary", "score", "metrics", "bugs", "optimizations", "explanation", "security", "complexity", "improved_code", "improvements"}
-    if not required.issubset(data):
+    if not isinstance(data, dict) or not REQUIRED_KEYS.issubset(data):
         raise ValueError("AI response was incomplete")
+
+    score = data["score"]
+    metrics = data["metrics"]
+    if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 100:
+        raise ValueError("AI response contained an invalid score")
+    if not isinstance(metrics, dict) or not METRIC_KEYS.issubset(metrics):
+        raise ValueError("AI response contained incomplete metrics")
+    for key in METRIC_KEYS:
+        metric = metrics[key]
+        if isinstance(metric, bool) or not isinstance(metric, int) or not 0 <= metric <= 100:
+            raise ValueError(f"AI response contained an invalid metric: {key}")
+
+    bugs = data["bugs"]
+    if not isinstance(bugs, list):
+        raise ValueError("AI response contained invalid bugs")
+    for bug in bugs:
+        if not isinstance(bug, dict) or bug.get("severity") not in SEVERITIES:
+            raise ValueError("AI response contained an invalid bug severity")
+
     return data
 
 
@@ -55,10 +80,10 @@ def generate_tests(code: str, language: str) -> str:
     try:
         if settings.ai_provider.lower() == "openai" and settings.openai_api_key:
             from openai import OpenAI
-            response = OpenAI(api_key=settings.openai_api_key).chat.completions.create(model=settings.openai_model, messages=[{"role":"system","content":"You are a testing expert. Return only runnable test code."},{"role":"user","content":prompt}])
+            response = OpenAI(api_key=settings.openai_api_key).chat.completions.create(model=settings.openai_model, messages=[{"role": "system", "content": "You are a testing expert. Return only runnable test code."}, {"role": "user", "content": prompt}])
         else:
             from groq import Groq
-            response = Groq(api_key=settings.groq_api_key).chat.completions.create(model=settings.groq_model, messages=[{"role":"system","content":"You are a testing expert. Return only runnable test code."},{"role":"user","content":prompt}])
+            response = Groq(api_key=settings.groq_api_key).chat.completions.create(model=settings.groq_model, messages=[{"role": "system", "content": "You are a testing expert. Return only runnable test code."}, {"role": "user", "content": prompt}])
         return (response.choices[0].message.content or "").replace("```python", "").replace("```", "").strip()
     except Exception as exc:
         return f"# Test generation is temporarily unavailable: {str(exc)[:120]}"

@@ -12,29 +12,14 @@ from app.reviewer import _parse_json, fallback_review, generate_tests, review_co
 VALID = {
     "summary": "Looks good",
     "score": 80,
-    "metrics": {
-        "maintainability": 80,
-        "readability": 76,
-        "efficiency": 74,
-        "security": 72,
-        "best_practices": 77,
-    },
-    "bugs": [],
-    "optimizations": ["Use type hints."],
+    "metrics": {"maintainability": 80, "readability": 76, "efficiency": 74, "security": 72, "best_practices": 77},
+    "bugs": [], "optimizations": ["Use type hints."],
     "explanation": {"purpose": "p", "functions": ["f"], "logic": ["l"]},
-    "security": [],
-    "complexity": {"time": "O(n)", "space": "O(1)", "explanation": "e"},
-    "improved_code": "pass",
-    "improvements": ["Add tests."],
+    "security": [], "complexity": {"time": "O(n)", "space": "O(1)", "explanation": "e"},
+    "improved_code": "pass", "improvements": ["Add tests."],
 }
 
-NO_PROVIDER = SimpleNamespace(
-    ai_provider="groq",
-    groq_api_key=None,
-    openai_api_key=None,
-    groq_model="x",
-    openai_model="x",
-)
+NO_PROVIDER = SimpleNamespace(ai_provider="groq", groq_api_key=None, openai_api_key=None, groq_model="x", openai_model="x")
 
 
 def test_parse_json_strips_markdown_fence():
@@ -57,6 +42,24 @@ def test_parse_json_rejects_incomplete_response():
 def test_parse_json_rejects_invalid_json():
     with pytest.raises(json.JSONDecodeError):
         _parse_json("not json at all")
+
+
+def test_parse_json_rejects_out_of_range_score():
+    invalid = {**VALID, "score": 101}
+    with pytest.raises(ValueError):
+        _parse_json(json.dumps(invalid))
+
+
+def test_parse_json_rejects_invalid_metric():
+    invalid = {**VALID, "metrics": {**VALID["metrics"], "security": -1}}
+    with pytest.raises(ValueError):
+        _parse_json(json.dumps(invalid))
+
+
+def test_parse_json_rejects_invalid_bug_severity():
+    invalid = {**VALID, "bugs": [{"severity": "Blocker", "title": "x"}]}
+    with pytest.raises(ValueError):
+        _parse_json(json.dumps(invalid))
 
 
 def test_fallback_review_flags_dangerous_patterns():

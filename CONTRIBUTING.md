@@ -1,20 +1,16 @@
 # Contributing
 
-## Before opening a pull request
+## Before opening a PR
 
-- Keep changes focused and explain the engineering reason for them.
-- Add or update backend/frontend tests for behavior changes.
-- Do not commit API keys, access tokens, passwords, database credentials, or other secrets.
-- Run the relevant test suite locally.
-- Update documentation when configuration or user-facing behavior changes.
+- Create a focused branch.
+- Add tests for behavior changes.
+- Run backend and frontend test suites relevant to your change.
+- Do not commit secrets, API keys, private code, or generated artifacts.
+
+## AI-related changes
+
+Review generated output critically. Changes to prompts, structured response parsing, provider adapters, authentication, or security controls should include regression coverage.
 
 ## Pull requests
 
-Please include:
-
-1. Problem being solved.
-2. Approach taken.
-3. Tests run and their results.
-4. Security or compatibility considerations.
-
-For AI-related changes, also describe how malformed or unexpected model output is handled.
+Describe the problem, implementation, tests run, security implications, and any follow-up work. Keep unrelated formatting or refactoring out of focused changes.
